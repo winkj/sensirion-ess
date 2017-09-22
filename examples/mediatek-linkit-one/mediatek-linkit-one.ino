@@ -89,17 +89,13 @@ void sendAndRead(float temp, float rh, float voc)
   }
 
   // Make sure we are connected, and dump the response content to Serial
-  while (c)
-  {
+  while (c) {
     int v = c.read();
     if (v != -1) {
       Serial.print((char)v);
     } else {
       Serial.println("no more content, disconnect");
       c.stop();
-      while (1) {
-        delay(1);
-      }
     }
   }
 }

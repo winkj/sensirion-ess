@@ -166,10 +166,17 @@ int SensirionESS::initSGP()
 {
     uint8_t cmd[CMD_LENGTH] = { 0x20, 0x03 };
 
+    // TODO: decide whether we need another init command here
+
+
     if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
         setError("error in i2c_write");
         return -1;
     }
+
+    // TODO: a this point, we need to check whether there's a baseline saved,
+    //       and restore it if it is available
+
     return 0;
 }
 

@@ -180,6 +180,11 @@ int SensirionESS::initSGP()
     return 0;
 }
 
+bool SensirionESS::isInitialized()
+{
+    return mInitialized;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // getter for values read earlier
 

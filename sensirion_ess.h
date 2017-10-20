@@ -41,6 +41,8 @@ public:
     int measureRHT();
     int measureIAQ();
 
+    bool isInitialized();
+
     float getTemperature() const;
     float getHumidity() const;
 

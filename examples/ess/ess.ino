@@ -45,13 +45,8 @@ void loop() {
 
     delay(ess.remainingWaitTimeMS());
   } else {
-    Serial.print("ESS not initialized. Trying to reinitialize");
-    Serial.print("\n");
-    if (ess.initSensors() != 0) {
-        Serial.print("Error while initializing sensors: ");
-        Serial.print(ess.getError());
-        Serial.print("\n");
+    while (1) { // loop forever, error message was already printed in setup()
+      delay(1000);
     }
-    delay(1000);
   }
 }

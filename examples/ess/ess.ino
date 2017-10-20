@@ -7,7 +7,11 @@ void setup()
   Serial.begin(9600);
   delay(1000); // let console settle
 
-  ess.initSensors();
+  if (ess.initSensors() != 0) {
+      Serial.print("Error while initializing sensors: ");
+      Serial.print(ess.getError());
+      Serial.print("\n");
+  }
 }
 
 float temp, rh, tvoc = -1;

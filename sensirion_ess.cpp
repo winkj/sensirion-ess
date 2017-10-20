@@ -168,7 +168,6 @@ int SensirionESS::initSGP()
 
     // TODO: decide whether we need another init command here
 
-
     if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
         setError("error in i2c_write");
         return -1;
@@ -243,6 +242,7 @@ int SensirionESS::remainingWaitTimeMS()
     unsigned long now = millis();
     if (now < mSGPMeasurementTimestamp) {
         // overflow
+        // TODO: fix overflow
         return SGP_INTERMEASURE_DELAY;
     }
     unsigned long deltaT = now - mSGPMeasurementTimestamp;

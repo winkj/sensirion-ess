@@ -164,7 +164,7 @@ int SensirionESS::measureIAQ()
 
 int SensirionESS::initSGP()
 {
-    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x03 };
+    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x24 };
 
     // TODO: decide whether we need another init command here
 

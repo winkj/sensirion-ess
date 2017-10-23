@@ -23,7 +23,8 @@
 #define WIFI_PASSWORD "<WIFI_PASSWORD>"
 #define WIFI_AUTH LWIFI_WPA  // choose from LWIFI_OPEN, LWIFI_WPA, or LWIFI_WEP.
 #define SITE_URL "dweet.io"
-#define BASE_URL "/dweet/for/<thing>"
+#define BASE_URL "/dweet/for/"
+#define THING_NAME "<THING>"
 
 LWiFiClient c;
 
@@ -62,7 +63,7 @@ void sendAndRead(float temp, float rh, float voc)
   // send HTTP request, ends with 2 CR/LF
   Serial.println("send HTTP GET request");
   c.print("GET ");
-  c.print(BASE_URL);
+  c.print(BASE_URL THING_NAME);
   c.print("?temp=");
   c.print(temp);
   c.print("&rh=");

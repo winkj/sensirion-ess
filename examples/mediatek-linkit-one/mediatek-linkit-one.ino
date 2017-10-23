@@ -51,6 +51,32 @@ void setup()
 
 }
 
+void loop()
+{
+  float temp, rh, tvoc = -1;
+
+  if (ess.measureRHT() != 0) {
+    Serial.print("Error while measuring RHT: ");
+    Serial.print(ess.getError());
+    Serial.print("\n");
+  } else {
+    temp = ess.getTemperature();
+    rh = ess.getHumidity();
+  }
+
+  if (ess.measureIAQ() != 0) {
+    Serial.print("Error while measuring IAQ: ");
+    Serial.print(ess.getError());
+    Serial.print("\n");
+  } else {
+    tvoc = ess.getTVOC();
+  }
+
+  sendAndRead(temp, rh, tvoc);
+
+  delay(ess.remainingWaitTimeMS());
+}
+
 void sendAndRead(float temp, float rh, float voc)
 {
   // keep retrying until connected to website
@@ -91,32 +117,4 @@ void sendAndRead(float temp, float rh, float voc)
       c.stop();
     }
   }
-}
-
-float temp, rh, tvoc = -1;
-
-void loop()
-{
-  temp, rh, tvoc = -1;
-
-  if (ess.measureRHT() != 0) {
-    Serial.print("Error while measuring RHT: ");
-    Serial.print(ess.getError());
-    Serial.print("\n");
-  } else {
-    temp = ess.getTemperature();
-    rh = ess.getHumidity();
-  }
-
-  if (ess.measureIAQ() != 0) {
-    Serial.print("Error while measuring IAQ: ");
-    Serial.print(ess.getError());
-    Serial.print("\n");
-  } else {
-    tvoc = ess.getTVOC();
-  }
-
-  sendAndRead(temp, rh, tvoc);
-
-  delay(ess.remainingWaitTimeMS());
 }

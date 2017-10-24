@@ -77,6 +77,9 @@ void loop()
   delay(ess.remainingWaitTimeMS());
 }
 
+//////////////////////////////////////////////////////////////////////
+// helper function to communicate with dweet.io
+
 void sendAndRead(float temp, float rh, float voc)
 {
   // keep retrying until connected to website

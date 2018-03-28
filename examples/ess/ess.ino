@@ -45,5 +45,12 @@ void loop() {
   Serial.print(" ");
   Serial.print("\n");
 
-  delay(ess.remainingWaitTimeMS());
+  int waitTime = ess.remainingWaitTimeMS();
+  if (waitTime == -1) {
+      Serial.print("Warning: delta time between measurements too long");
+      Serial.print("         IAQ values may be inaccurate");
+      Serial.print("\n");
+  } else {
+      delay(waitTime);
+  }
 }

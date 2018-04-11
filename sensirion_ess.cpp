@@ -239,13 +239,7 @@ const char* SensirionESS::getError() const
 
 int SensirionESS::remainingWaitTimeMS()
 {
-    unsigned long now = millis();
-    if (now < mSGPMeasurementTimestamp) {
-        // overflow
-        // TODO: fix overflow
-        return SGP_INTERMEASURE_DELAY;
-    }
-    unsigned long deltaT = now - mSGPMeasurementTimestamp;
+    unsigned long deltaT = millis() - mSGPMeasurementTimestamp;
     if (deltaT > SGP_INTERMEASURE_DELAY) {
         // we're already late, don't wait any longer
         return 0;

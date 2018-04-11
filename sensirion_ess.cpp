@@ -248,7 +248,7 @@ int SensirionESS::remainingWaitTimeMS()
     unsigned long deltaT = now - mSGPMeasurementTimestamp;
     if (deltaT > SGP_INTERMEASURE_DELAY) {
         // we're already late, don't wait any longer
-        return 0;
+        return -1;
     }
     return (SGP_INTERMEASURE_DELAY - deltaT);
 }

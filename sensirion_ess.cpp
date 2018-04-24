@@ -118,6 +118,16 @@ int SensirionESS::measureRHTInt()
 //////////////////////////////////////////////////////////////////////////////
 // SGP
 
+int SensirionESS::getProductType() const
+{
+    return mProductType;
+}
+
+int SensirionESS::getFeatureSetVersion() const
+{
+    return mFeatureSetVersion;
+}
+
 int SensirionESS::measureIAQ()
 {
     if (!mInitialized) {
@@ -150,6 +160,16 @@ int SensirionESS::measureIAQ()
 
     mTVOC = (mDataBuf[0] << 8) | mDataBuf[1];
 
+    if (mProductType == PRODUCT_TYPE_SGP30) {
+      if (crc8(mDataBuf+3, 2) != mDataBuf[5]) {
+          setError("CRC mismatch");
+          return -4;
+      }
+
+      mECO2 = (mDataBuf[3] << 8) | mDataBuf[4];
+    }
+
+
     if (mLedAutoSync) {
         if (mTVOC >= SGP_RED_THRESHOLD) {
             setLedRYGInt(1, 0, 0);
@@ -164,21 +184,59 @@ int SensirionESS::measureIAQ()
     return 0;
 }
 
-int SensirionESS::initSGP()
+int SensirionESS::readFeatureSetInt()
 {
-    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x24 };
-
-    // TODO: decide whether we need another init command here
+    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x2f };
 
     if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
         setError("error in i2c_write");
         return -1;
     }
 
-    // TODO: a this point, we need to check whether there's a baseline saved,
-    //       and restore it if it is available
+    delay(2);
+
+    const uint8_t DATA_LEN = 3;
+    uint8_t data[DATA_LEN] = { 0 };
+    int ret = i2c_read(SGP_I2C_ADDR, data, DATA_LEN);
+    if (ret == -1) {
+        setError("I2C read error");
+        return -3;
+    }
+
+    // check CRC
+    if (crc8(data, 2) != data[2]) {
+        setError("CRC mismatch");
+        return -4;
+    }
+
+    // 0 = SGP30, 1 = SGPC3
+    mProductType = (data[0] & 0xF0) >> 4;
+    mFeatureSetVersion = data[1] & 0xFF;
 
     return 0;
+}
+
+int SensirionESS::initSGP()
+{
+    int ret = readFeatureSetInt();
+    // default: SGP30
+    SGP_INTERMEASURE_DELAY = SGP30_INTERMEASURE_DELAY;
+    SGP_DATA_LENGTH = SGP30_DATA_LENGTH;
+    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x03 };
+
+    if (mProductType == PRODUCT_TYPE_SGPC3) {
+      SGP_INTERMEASURE_DELAY = SGPC3_INTERMEASURE_DELAY;
+      cmd[1] = 0xae;
+    }
+
+    // run init air quality
+    if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
+        setError("error in i2c_write");
+        return -1;
+    }
+    delay(10);
+
+    return ret;
 }
 
 bool SensirionESS::isInitialized()
@@ -204,6 +262,10 @@ float SensirionESS::getTVOC() const
     return mTVOC;
 }
 
+float SensirionESS::getECO2() const
+{
+    return mECO2;
+}
 
 void SensirionESS::setLedRYG(int r, int y, int g)
 {

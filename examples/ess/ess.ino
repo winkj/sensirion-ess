@@ -15,10 +15,17 @@ void setup()
         delay(1000);
       }
   }
+
+  int type = ess.getProductType();
+  int fsVersion = ess.getFeatureSetVersion();
+
+  Serial.print((type == SensirionESS::PRODUCT_TYPE_SGP30) ? "SGP30" : "SGPC3");
+  Serial.print(" detected, running feature set version ");
+  Serial.println(fsVersion);
 }
 
 void loop() {
-  float temp, rh, tvoc = -1;
+  float temp, rh, tvoc, eco2 = -1;
 
   if (ess.measureRHT() != 0) {
     Serial.print("Error while measuring RHT: ");
@@ -35,6 +42,7 @@ void loop() {
     Serial.print("\n");
   } else {
     tvoc = ess.getTVOC();
+    eco2 = ess.getECO2(); // SGP30 only
   }
 
   Serial.print(temp);
@@ -43,6 +51,10 @@ void loop() {
   Serial.print(" ");
   Serial.print(tvoc);
   Serial.print(" ");
+  if (ess.getProductType() == SensirionESS::PRODUCT_TYPE_SGP30) {
+    Serial.print(eco2);
+  }
+
   Serial.print("\n");
 
   delay(ess.remainingWaitTimeMS());

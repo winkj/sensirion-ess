@@ -1,30 +1,32 @@
-
 /*
- *  Copyright (c) 2017, Johannes Winkelmann <jwi@sensirion.com>
- *  All rights reserved.
+ * Copyright (c) 2017-2018, Sensirion AG
+ * All rights reserved.
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *      * Neither the name of the <organization> nor the
- *        names of its contributors may be used to endorse or promote products
- *        derived from this software without specific prior written permission.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
- *  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * * Neither the name of Sensirion AG nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 /*
  * TODO:
@@ -116,6 +118,16 @@ int SensirionESS::measureRHTInt()
 //////////////////////////////////////////////////////////////////////////////
 // SGP
 
+int SensirionESS::getProductType() const
+{
+    return mProductType;
+}
+
+int SensirionESS::getFeatureSetVersion() const
+{
+    return mFeatureSetVersion;
+}
+
 int SensirionESS::measureIAQ()
 {
     if (!mInitialized) {
@@ -148,6 +160,16 @@ int SensirionESS::measureIAQ()
 
     mTVOC = (mDataBuf[0] << 8) | mDataBuf[1];
 
+    if (mProductType == PRODUCT_TYPE_SGP30) {
+      if (crc8(mDataBuf+3, 2) != mDataBuf[5]) {
+          setError("CRC mismatch");
+          return -4;
+      }
+
+      mECO2 = (mDataBuf[3] << 8) | mDataBuf[4];
+    }
+
+
     if (mLedAutoSync) {
         if (mTVOC >= SGP_RED_THRESHOLD) {
             setLedRYGInt(1, 0, 0);
@@ -162,21 +184,59 @@ int SensirionESS::measureIAQ()
     return 0;
 }
 
-int SensirionESS::initSGP()
+int SensirionESS::readFeatureSetInt()
 {
-    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x24 };
-
-    // TODO: decide whether we need another init command here
+    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x2f };
 
     if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
         setError("error in i2c_write");
         return -1;
     }
 
-    // TODO: a this point, we need to check whether there's a baseline saved,
-    //       and restore it if it is available
+    delay(2);
+
+    const uint8_t DATA_LEN = 3;
+    uint8_t data[DATA_LEN] = { 0 };
+    int ret = i2c_read(SGP_I2C_ADDR, data, DATA_LEN);
+    if (ret == -1) {
+        setError("I2C read error");
+        return -3;
+    }
+
+    // check CRC
+    if (crc8(data, 2) != data[2]) {
+        setError("CRC mismatch");
+        return -4;
+    }
+
+    // 0 = SGP30, 1 = SGPC3
+    mProductType = (data[0] & 0xF0) >> 4;
+    mFeatureSetVersion = data[1] & 0xFF;
 
     return 0;
+}
+
+int SensirionESS::initSGP()
+{
+    int ret = readFeatureSetInt();
+    // default: SGP30
+    SGP_INTERMEASURE_DELAY = SGP30_INTERMEASURE_DELAY;
+    SGP_DATA_LENGTH = SGP30_DATA_LENGTH;
+    uint8_t cmd[CMD_LENGTH] = { 0x20, 0x03 };
+
+    if (mProductType == PRODUCT_TYPE_SGPC3) {
+      SGP_INTERMEASURE_DELAY = SGPC3_INTERMEASURE_DELAY;
+      cmd[1] = 0xae;
+    }
+
+    // run init air quality
+    if (i2c_write(SGP_I2C_ADDR, cmd, CMD_LENGTH)) {
+        setError("error in i2c_write");
+        return -1;
+    }
+    delay(10);
+
+    return ret;
 }
 
 bool SensirionESS::isInitialized()
@@ -202,6 +262,10 @@ float SensirionESS::getTVOC() const
     return mTVOC;
 }
 
+float SensirionESS::getECO2() const
+{
+    return mECO2;
+}
 
 void SensirionESS::setLedRYG(int r, int y, int g)
 {

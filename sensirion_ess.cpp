@@ -214,8 +214,8 @@ void SensirionESS::setLedRYG(int r, int y, int g)
 void SensirionESS::setLedRYGInt(int r, int y, int g)
 {
     digitalWrite(LED_RED, r ? LOW : HIGH);
-    digitalWrite(LED_YEL, r ? LOW : HIGH);
-    digitalWrite(LED_GRN, r ? LOW : HIGH);
+    digitalWrite(LED_YEL, y ? LOW : HIGH);
+    digitalWrite(LED_GRN, g ? LOW : HIGH);
 }
 
 void SensirionESS::setLedAutoSync(bool autoSync)

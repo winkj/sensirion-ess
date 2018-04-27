@@ -1,3 +1,1 @@
-# sensirion-ess
-
-Pre-release of the ESS software
+# Updated version available at https://github.com/Sensirion/arduino-ess
